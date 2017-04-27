@@ -23,6 +23,7 @@ public class MainActivity extends Activity {
 	private String TAG = "---main---";
 	private final int _EL_S = 1;
 	private final int _EL_F = 2;
+	private boolean _ISSTART = false;
 
 	// View
 	private EditText ssid;
@@ -40,7 +41,7 @@ public class MainActivity extends Activity {
 
 		initView();
 		initOnClick();
-		
+
 		listenwifichange();
 	}
 
@@ -64,7 +65,7 @@ public class MainActivity extends Activity {
 
 			@Override
 			public void onClick(View v) {
-				startEl();
+				setTag();
 			}
 		});
 	}
@@ -93,11 +94,32 @@ public class MainActivity extends Activity {
 			}
 		});
 	}
+	
+	/**
+	 * 停止配网
+	 */
+	private void stopEl() {
+		
+		elink.stopEasyLink(new EasyLinkCallBack() {
+			@Override
+			public void onSuccess(int code, String message) {
+				Log.d(TAG, code + message);
+				send2handler(_EL_S, message);
+			}
+			
+			@Override
+			public void onFailure(int code, String message) {
+				Log.d(TAG, code + message);
+				send2handler(_EL_F, message);
+			}
+		});
+	}
 
 	/**
 	 * 监听配网时候调用接口的log，并显示在activity上
 	 */
 	Handler elhandler = new Handler() {
+
 		public void handleMessage(android.os.Message msg) {
 			switch (msg.what) {
 			case _EL_S:
@@ -112,6 +134,7 @@ public class MainActivity extends Activity {
 
 	/**
 	 * 发送消息给handler
+	 * 
 	 * @param tag
 	 * @param message
 	 */
@@ -120,6 +143,22 @@ public class MainActivity extends Activity {
 		msg.what = tag;
 		msg.obj = message;
 		elhandler.sendMessage(msg);
+	}
+
+	/**
+	 * 设置TAG标记按钮
+	 */
+	private void setTag() {
+		if (!_ISSTART) {
+			startel.setBackgroundResource(R.color.red);
+			startel.setText(R.string.stop_el);
+			startEl();
+		} else {
+			startel.setBackgroundResource(R.color.blue_btn);
+			startel.setText(R.string.start_el);
+			stopEl();
+		}
+		_ISSTART = !_ISSTART;
 	}
 
 	/**
@@ -139,7 +178,8 @@ public class MainActivity extends Activity {
 		public void onReceive(Context context, Intent intent) {
 			String action = intent.getAction();
 			if (action.equals(WifiManager.NETWORK_STATE_CHANGED_ACTION)) {
-				NetworkInfo info = intent.getParcelableExtra(WifiManager.EXTRA_NETWORK_INFO);
+				NetworkInfo info = intent
+						.getParcelableExtra(WifiManager.EXTRA_NETWORK_INFO);
 				if (info.getDetailedState() == NetworkInfo.DetailedState.CONNECTED) {
 					ssid.setText(elink.getSSID());
 				}
